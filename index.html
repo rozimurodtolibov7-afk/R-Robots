@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>R-Robots: Battle Arena</title>
+    <style>
+        :root { --bg: #2c3e50; --gold: #f1c40f; --red: #e74c3c; --blue: #3498db; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Arial Rounded MT Bold', sans-serif; }
+        body { background: var(--bg); color: white; text-align: center; }
+        
+        .arena { position: relative; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: space-around; padding: 20px; }
+        
+        .fighter-box { display: flex; justify-content: space-between; width: 100%; max-width: 400px; margin-bottom: 20px; }
+        .robot { font-size: 80px; transition: transform 0.3s ease; }
+        
+        .hp-bar { width: 120px; height: 15px; background: #555; border-radius: 10px; overflow: hidden; border: 2px solid white; }
+        .hp-fill { height: 100%; background: var(--red); width: 100%; transition: width 0.5s; }
+
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 400px; }
+        .btn { padding: 15px; border-radius: 15px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 0 rgba(0,0,0,0.3); }
+        .btn-attack { background: var(--red); color: white; }
+        .btn-heal { background: var(--grass, #2ecc71); color: white; }
+        
+        #log { font-size: 14px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 10px; width: 100%; max-width: 400px; height: 80px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+
+<div class="arena">
+    <h2 style="color: var(--gold);">R-ROBOTS ARENA</h2>
+
+    <div>
+        <div class="hp-bar"><div id="enemy-hp" class="hp-fill"></div></div>
+        <div id="enemy-bot" class="robot">🤖</div>
+        <p>Titan Bot (AI)</p>
+    </div>
+
+    <div id="log">Jangni boshlash uchun hujum qiling!</div>
+
+    <div>
+        <div id="player-bot" class="robot">🤖</div>
+        <div class="hp-bar"><div id="player-hp" class="hp-fill"></div></div>
+        <p>Sizning Robotingiz</p>
+    </div>
+
+    <div class="controls">
+        <button class="btn btn-attack" onclick="action('attack')">URUSH ⚡</button>
+        <button class="btn btn-heal" onclick="action('heal')">TUZATISH 🛠️</button>
+    </div>
+</div>
+
+<script>
+    let player = { hp: 100, power: 15 };
+    let enemy = { hp: 100, power: 12 };
+    const log = document.getElementById('log');
+
+    function action(type) {
+        if (player.hp <= 0 || enemy.hp <= 0) return;
+
+        if (type === 'attack') {
+            let dmg = Math.floor(Math.random() * player.power) + 5;
+            enemy.hp -= dmg;
+            addLog(`Siz dushmanga ${dmg} zarar berdingiz! 💥`);
+            animate('player-bot', -20);
+        } else {
+            let heal = 15;
+            player.hp = Math.min(100, player.hp + heal);
+            addLog(`Siz o'zingizni ${heal} HP ga tuzatdingiz! 🛠️`);
+        }
+
+        updateUI();
+        if (enemy.hp > 0) setTimeout(enemyTurn, 800);
+        else win();
+    }
+
+    function enemyTurn() {
+        let dmg = Math.floor(Math.random() * enemy.power) + 5;
+        player.hp -= dmg;
+        addLog(`Dushman sizga ${dmg} zarar berdi! ⚡`);
+        animate('enemy-bot', 20);
+        updateUI();
+        if (player.hp <= 0) die();
+    }
+
+    function updateUI() {
+        document.getElementById('player-hp').style.width = player.hp + "%";
+        document.getElementById('enemy-hp').style.width = enemy.hp + "%";
+    }
+
+    function addLog(msg) {
+        log.innerHTML = msg + "<br>" + log.innerHTML;
+    }
+
+    function animate(id, y) {
+        const el = document.getElementById(id);
+        el.style.transform = `translateY(${y}px)`;
+        setTimeout(() => el.style.transform = 'translateY(0)', 200);
+    }
+
+    function win() {
+        addLog("<b style='color:gold'>G'ALABA! +100 RC yutdingiz! 🏆</b>");
+        alert("G'alaba!");
+        location.reload();
+    }
+
+    function die() {
+        addLog("<b style='color:red'>MAG'LUBIYAT! Robot portladi... 💥</b>");
+        alert("O'yin tugadi!");
+        location.reload();
+    }
+</script>
+</body>
+</html>
