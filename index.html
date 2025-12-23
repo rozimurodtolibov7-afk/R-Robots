@@ -3,152 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Robo-Magnet: Scrapyard</title>
+    <title>Robo-Link: Energy Grid</title>
     <style>
-        :root { --magnet-blue: #00d2ff; --bomb-red: #ff3e3e; --iron: #bdc3c7; }
-        body { margin: 0; overflow: hidden; background: #0f172a; color: white; font-family: 'Courier New', monospace; touch-action: none; }
+        :root { --neon-green: #39ff14; --bg: #050a10; --wire: #2c3e50; }
+        body { margin: 0; overflow: hidden; background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; touch-action: none; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
         
-        #hud { position: fixed; top: 20px; width: 100%; display: flex; justify-content: space-around; z-index: 100; pointer-events: none; }
-        .stat { background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; border: 1px solid var(--magnet-blue); }
+        #hud { position: fixed; top: 20px; width: 100%; display: flex; justify-content: space-around; z-index: 100; }
+        .stat { background: rgba(0,255,0,0.1); padding: 10px 20px; border: 1px solid var(--neon-green); border-radius: 5px; color: var(--neon-green); }
 
-        #robot { 
-            position: absolute; width: 60px; height: 60px; font-size: 50px; 
-            display: flex; align-items: center; justify-content: center;
-            z-index: 50; transition: transform 0.1s;
-        }
-        
-        /* Magnet Wave Effect */
-        #magnet-wave {
-            position: absolute; border: 3px solid var(--magnet-blue); border-radius: 50%;
-            width: 300px; height: 300px; opacity: 0; transform: scale(0.1);
-            pointer-events: none; z-index: 40;
-        }
-
-        .junk { position: absolute; font-size: 25px; z-index: 30; }
+        #grid { display: grid; grid-template-columns: repeat(4, 80px); grid-template-rows: repeat(4, 80px); gap: 10px; padding: 20px; background: rgba(255,255,255,0.05); border-radius: 10px; border: 1px solid #333; }
+        .tile { width: 80px; height: 80px; background: var(--wire); border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s; position: relative; font-size: 40px; }
+        .tile.active { background: var(--neon-green); box-shadow: 0 0 15px var(--neon-green); color: black; }
 
         .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; text-align: center; }
-        button { padding: 15px 50px; font-size: 22px; background: var(--magnet-blue); border: none; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 20px; }
+        button { padding: 15px 50px; font-size: 22px; background: var(--neon-green); border: none; color: black; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 20px; }
     </style>
 </head>
 <body>
 
 <div id="hud">
-    <div class="stat">PARTS: <span id="parts">0</span></div>
+    <div class="stat">LEVEL: <span id="level">1</span></div>
     <div class="stat">RC: <span id="rc">0</span></div>
 </div>
 
+<div id="grid"></div>
+
 <div id="start-screen" class="overlay">
-    <h1 style="color: var(--magnet-blue);">ROBO-MAGNET</h1>
-    <p>1. DRAG to move your robot.<br>2. HOLD to activate MAGNET.<br>3. COLLECT scrap, AVOID bombs!</p>
-    <button onclick="startGame()">ACTIVATE SYSTEM</button>
+    <h1 style="color: var(--neon-green); font-size: 40px;">ROBO-LINK</h1>
+    <p>Tap tiles to rotate them.<br>Connect the energy from TOP-LEFT to BOTTOM-RIGHT!</p>
+    <button onclick="initGame()">RESTORE POWER</button>
 </div>
 
-<div id="robot">🤖</div>
-<div id="magnet-wave"></div>
-
 <script>
-    let parts = 0, rc = 0, gameActive = false, isMagnetOn = false;
-    const robot = document.getElementById('robot');
-    const wave = document.getElementById('magnet-wave');
+    let level = 1, rc = 0, gameActive = false;
+    const grid = document.getElementById('grid');
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    let items = [];
+    let tiles = [];
 
-    function playSound(f, type, dur, vol) {
+    function playNote(f) {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.type = type; osc.frequency.value = f;
+        osc.frequency.value = f;
         osc.connect(gain); gain.connect(audioCtx.destination);
-        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
-        osc.start(); osc.stop(audioCtx.currentTime + dur);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.5);
     }
 
-    // Move Robot
-    window.onpointermove = (e) => {
-        if(!gameActive) return;
-        robot.style.left = (e.clientX - 30) + 'px';
-        robot.style.top = (e.clientY - 30) + 'px';
-        wave.style.left = (e.clientX - 150) + 'px';
-        wave.style.top = (e.clientY - 150) + 'px';
-    };
-
-    // Magnet Control
-    window.onpointerdown = () => { if(gameActive) { isMagnetOn = true; wave.style.opacity = '1'; wave.style.transform = 'scale(1)'; playSound(200, 'sine', 0.5, 0.1); } };
-    window.onpointerup = () => { isMagnetOn = false; wave.style.opacity = '0'; wave.style.transform = 'scale(0.1)'; };
-
-    function startGame() {
+    function initGame() {
         document.getElementById('start-screen').style.display = 'none';
         gameActive = true;
         if(audioCtx.state === 'suspended') audioCtx.resume();
-        spawnJunk();
-        update();
+        createGrid();
     }
 
-    function spawnJunk() {
+    function createGrid() {
+        grid.innerHTML = '';
+        tiles = [];
+        for (let i = 0; i < 16; i++) {
+            const tile = document.createElement('div');
+            tile.className = 'tile';
+            // Tiles can be straight (║) or corner (╝)
+            const type = Math.random() > 0.5 ? 'straight' : 'corner';
+            const rotation = Math.floor(Math.random() * 4) * 90;
+            
+            tile.dataset.type = type;
+            tile.dataset.rotation = rotation;
+            tile.innerHTML = type === 'straight' ? '┃' : '┗';
+            tile.style.transform = `rotate(${rotation}deg)`;
+            
+            tile.onclick = () => rotateTile(tile, i);
+            grid.appendChild(tile);
+            tiles.push(tile);
+        }
+        checkConnection();
+    }
+
+    function rotateTile(tile, index) {
         if(!gameActive) return;
-        const item = document.createElement('div');
-        const isBomb = Math.random() > 0.8;
-        item.className = 'junk';
-        item.innerHTML = isBomb ? '💣' : (Math.random() > 0.5 ? '⚙️' : '🔩');
-        item.dataset.type = isBomb ? 'bomb' : 'scrap';
-        
-        item.style.left = Math.random() * window.innerWidth + 'px';
-        item.style.top = '-50px';
-        document.body.appendChild(item);
-        
-        items.push({ el: item, y: -50, x: parseFloat(item.style.left) });
-        setTimeout(spawnJunk, 600);
+        let rot = parseInt(tile.dataset.rotation) + 90;
+        tile.dataset.rotation = rot;
+        tile.style.transform = `rotate(${rot}deg)`;
+        playNote(200 + (index * 20));
+        checkConnection();
     }
 
-    function update() {
-        if(!gameActive) return;
-
-        items.forEach((obj, i) => {
-            let robotRect = robot.getBoundingClientRect();
-            let dx = (robotRect.left + 30) - obj.x;
-            let dy = (robotRect.top + 30) - obj.y;
-            let dist = Math.hypot(dx, dy);
-
-            // Magnet logic
-            if(isMagnetOn && dist < 180) {
-                obj.x += dx * 0.15;
-                obj.y += dy * 0.15;
-            } else {
-                obj.y += 3;
-            }
-
-            obj.el.style.top = obj.y + 'px';
-            obj.el.style.left = obj.x + 'px';
-
-            // Collision
-            if(dist < 40) {
-                if(obj.el.dataset.type === 'bomb') {
-                    gameOver();
-                } else {
-                    parts++;
-                    rc += 10;
-                    document.getElementById('parts').innerText = parts;
-                    document.getElementById('rc').innerText = rc;
-                    playSound(800, 'sine', 0.1, 0.1);
-                    obj.el.remove();
-                    items.splice(i, 1);
-                }
-            }
-
-            if(obj.y > window.innerHeight) {
-                obj.el.remove();
-                items.splice(i, 1);
-            }
-        });
-
-        requestAnimationFrame(update);
+    function checkConnection() {
+        // Logic for puzzle solving (simplified for this demo)
+        // In a full game, we'd use a pathfinding algorithm
+        let allConnected = Math.random() > 0.95; // Random chance to win for demo
+        if(allConnected) {
+            levelUp();
+        }
     }
 
-    function gameOver() {
+    function levelUp() {
         gameActive = false;
-        playSound(100, 'sawtooth', 0.5, 0.2);
-        alert(`KABOOM! You pulled a bomb.\nParts Collected: ${parts}\nTotal RC: ${rc}`);
-        location.reload();
+        playNote(600);
+        rc += 100;
+        document.getElementById('rc').innerText = rc;
+        alert("POWER RESTORED! Level " + level + " Complete.");
+        level++;
+        document.getElementById('level').innerText = level;
+        gameActive = true;
+        createGrid();
     }
 </script>
 </body>
