@@ -3,144 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Robo-Puncher: Arena</title>
+    <title>Robo-Magnet: Scrapyard</title>
     <style>
-        :root { --neon-yellow: #faff00; --neon-red: #ff003c; --bg: #0d0d0d; }
-        body { margin: 0; overflow: hidden; background: var(--bg); color: white; font-family: 'Arial Black', sans-serif; touch-action: none; }
+        :root { --magnet-blue: #00d2ff; --bomb-red: #ff3e3e; --iron: #bdc3c7; }
+        body { margin: 0; overflow: hidden; background: #0f172a; color: white; font-family: 'Courier New', monospace; touch-action: none; }
         
-        #arena { position: relative; width: 100vw; height: 100vh; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-        
-        /* HUD */
         #hud { position: fixed; top: 20px; width: 100%; display: flex; justify-content: space-around; z-index: 100; pointer-events: none; }
-        .stat { background: rgba(0,0,0,0.8); padding: 10px 20px; border: 2px solid var(--neon-yellow); border-radius: 5px; }
+        .stat { background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; border: 1px solid var(--magnet-blue); }
 
-        /* Player */
-        #player { font-size: 80px; z-index: 50; position: relative; transition: transform 0.1s; }
-        .punch-left { transform: translateX(-40px) scaleX(-1); }
-        .punch-right { transform: translateX(40px); }
-
-        /* Enemy */
-        .enemy { position: absolute; font-size: 50px; z-index: 40; transition: left 0.05s, right 0.05s; }
-
-        /* Overlay */
-        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; text-align: center; }
-        button { padding: 15px 50px; font-size: 22px; background: var(--neon-yellow); border: none; font-weight: bold; cursor: pointer; border-radius: 5px; margin-top: 20px; }
+        #robot { 
+            position: absolute; width: 60px; height: 60px; font-size: 50px; 
+            display: flex; align-items: center; justify-content: center;
+            z-index: 50; transition: transform 0.1s;
+        }
         
-        #flash { position: fixed; inset: 0; background: white; opacity: 0; pointer-events: none; z-index: 999; }
+        /* Magnet Wave Effect */
+        #magnet-wave {
+            position: absolute; border: 3px solid var(--magnet-blue); border-radius: 50%;
+            width: 300px; height: 300px; opacity: 0; transform: scale(0.1);
+            pointer-events: none; z-index: 40;
+        }
+
+        .junk { position: absolute; font-size: 25px; z-index: 30; }
+
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; text-align: center; }
+        button { padding: 15px 50px; font-size: 22px; background: var(--magnet-blue); border: none; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 20px; }
     </style>
 </head>
 <body>
 
 <div id="hud">
-    <div class="stat">SCORE: <span id="score">0</span></div>
-    <div class="stat">HP: <span id="hp">100</span>%</div>
+    <div class="stat">PARTS: <span id="parts">0</span></div>
+    <div class="stat">RC: <span id="rc">0</span></div>
 </div>
-
-<div id="arena">
-    <div id="player">🤖</div>
-</div>
-
-<div id="flash"></div>
 
 <div id="start-screen" class="overlay">
-    <h1 style="color: var(--neon-yellow); font-size: 45px;">ROBO-PUNCHER</h1>
-    <p>Tap LEFT side to punch Left<br>Tap RIGHT side to punch Right<br>Don't let them touch you!</p>
-    <button onclick="startGame()">START BATTLE</button>
+    <h1 style="color: var(--magnet-blue);">ROBO-MAGNET</h1>
+    <p>1. DRAG to move your robot.<br>2. HOLD to activate MAGNET.<br>3. COLLECT scrap, AVOID bombs!</p>
+    <button onclick="startGame()">ACTIVATE SYSTEM</button>
 </div>
 
-<script>
-    let score = 0, hp = 100, gameActive = false;
-    const player = document.getElementById('player');
-    const arena = document.getElementById('arena');
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+<div id="robot">🤖</div>
+<div id="magnet-wave"></div>
 
-    function playHitSound(f, d) {
-        let osc = audioCtx.createOscillator();
-        let gain = audioCtx.createGain();
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(f, audioCtx.currentTime);
+<script>
+    let parts = 0, rc = 0, gameActive = false, isMagnetOn = false;
+    const robot = document.getElementById('robot');
+    const wave = document.getElementById('magnet-wave');
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let items = [];
+
+    function playSound(f, type, dur, vol) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type; osc.frequency.value = f;
         osc.connect(gain); gain.connect(audioCtx.destination);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + d);
-        osc.start(); osc.stop(audioCtx.currentTime + d);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+        osc.start(); osc.stop(audioCtx.currentTime + dur);
     }
+
+    // Move Robot
+    window.onpointermove = (e) => {
+        if(!gameActive) return;
+        robot.style.left = (e.clientX - 30) + 'px';
+        robot.style.top = (e.clientY - 30) + 'px';
+        wave.style.left = (e.clientX - 150) + 'px';
+        wave.style.top = (e.clientY - 150) + 'px';
+    };
+
+    // Magnet Control
+    window.onpointerdown = () => { if(gameActive) { isMagnetOn = true; wave.style.opacity = '1'; wave.style.transform = 'scale(1)'; playSound(200, 'sine', 0.5, 0.1); } };
+    window.onpointerup = () => { isMagnetOn = false; wave.style.opacity = '0'; wave.style.transform = 'scale(0.1)'; };
 
     function startGame() {
         document.getElementById('start-screen').style.display = 'none';
         gameActive = true;
         if(audioCtx.state === 'suspended') audioCtx.resume();
-        spawnEnemy();
-        
-        // Background Beat
-        setInterval(() => {
-            if(gameActive) playHitSound(60, 0.2);
-        }, 500);
+        spawnJunk();
+        update();
     }
 
-    window.onpointerdown = (e) => {
+    function spawnJunk() {
         if(!gameActive) return;
-        const side = e.clientX < window.innerWidth / 2 ? 'left' : 'right';
+        const item = document.createElement('div');
+        const isBomb = Math.random() > 0.8;
+        item.className = 'junk';
+        item.innerHTML = isBomb ? '💣' : (Math.random() > 0.5 ? '⚙️' : '🔩');
+        item.dataset.type = isBomb ? 'bomb' : 'scrap';
         
-        player.className = side === 'left' ? 'punch-left' : 'punch-right';
-        playHitSound(200, 0.1);
+        item.style.left = Math.random() * window.innerWidth + 'px';
+        item.style.top = '-50px';
+        document.body.appendChild(item);
+        
+        items.push({ el: item, y: -50, x: parseFloat(item.style.left) });
+        setTimeout(spawnJunk, 600);
+    }
 
-        // Check hits
-        const enemies = document.querySelectorAll('.enemy');
-        enemies.forEach(en => {
-            const rect = en.getBoundingClientRect();
-            const pRect = player.getBoundingClientRect();
-            const dist = Math.abs(rect.left - pRect.left);
+    function update() {
+        if(!gameActive) return;
 
-            if(dist < 150) {
-                if((side === 'left' && rect.left < pRect.left) || 
-                   (side === 'right' && rect.left > pRect.left)) {
-                    en.innerHTML = '💥';
-                    score += 10;
-                    document.getElementById('score').innerText = score;
-                    setTimeout(() => en.remove(), 100);
-                    playHitSound(400, 0.1);
+        items.forEach((obj, i) => {
+            let robotRect = robot.getBoundingClientRect();
+            let dx = (robotRect.left + 30) - obj.x;
+            let dy = (robotRect.top + 30) - obj.y;
+            let dist = Math.hypot(dx, dy);
+
+            // Magnet logic
+            if(isMagnetOn && dist < 180) {
+                obj.x += dx * 0.15;
+                obj.y += dy * 0.15;
+            } else {
+                obj.y += 3;
+            }
+
+            obj.el.style.top = obj.y + 'px';
+            obj.el.style.left = obj.x + 'px';
+
+            // Collision
+            if(dist < 40) {
+                if(obj.el.dataset.type === 'bomb') {
+                    gameOver();
+                } else {
+                    parts++;
+                    rc += 10;
+                    document.getElementById('parts').innerText = parts;
+                    document.getElementById('rc').innerText = rc;
+                    playSound(800, 'sine', 0.1, 0.1);
+                    obj.el.remove();
+                    items.splice(i, 1);
                 }
+            }
+
+            if(obj.y > window.innerHeight) {
+                obj.el.remove();
+                items.splice(i, 1);
             }
         });
 
-        setTimeout(() => player.className = '', 100);
-    };
-
-    function spawnEnemy() {
-        if(!gameActive) return;
-        const en = document.createElement('div');
-        en.className = 'enemy';
-        en.innerHTML = '👾';
-        const isLeft = Math.random() > 0.5;
-        en.style.left = isLeft ? '-50px' : (window.innerWidth + 50) + 'px';
-        en.style.top = (window.innerHeight / 2 - 25) + 'px';
-        arena.appendChild(en);
-
-        let pos = isLeft ? -50 : window.innerWidth + 50;
-        const move = setInterval(() => {
-            if(!gameActive) { clearInterval(move); en.remove(); return; }
-            
-            if(isLeft) pos += (3 + score/200); else pos -= (3 + score/200);
-            en.style.left = pos + 'px';
-
-            const pRect = player.getBoundingClientRect();
-            if(Math.abs(pos - pRect.left) < 40) {
-                hp -= 20;
-                document.getElementById('hp').innerText = hp;
-                document.getElementById('flash').style.opacity = '0.5';
-                setTimeout(() => document.getElementById('flash').style.opacity = '0', 50);
-                en.remove();
-                clearInterval(move);
-                if(hp <= 0) gameOver();
-            }
-        }, 20);
-
-        setTimeout(spawnEnemy, Math.max(400, 1200 - score/5));
+        requestAnimationFrame(update);
     }
 
     function gameOver() {
         gameActive = false;
-        alert("ARENA OVERRUN!\nFinal Score: " + score);
+        playSound(100, 'sawtooth', 0.5, 0.2);
+        alert(`KABOOM! You pulled a bomb.\nParts Collected: ${parts}\nTotal RC: ${rc}`);
         location.reload();
     }
 </script>
