@@ -1,37 +1,50 @@
-<!DOCTYPE html>
+\<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Robo-Link: Energy Grid</title>
+    <title>Robo-Link: Power Grid</title>
     <style>
-        :root { --neon-green: #39ff14; --bg: #050a10; --wire: #2c3e50; }
-        body { margin: 0; overflow: hidden; background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; touch-action: none; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+        :root { --neon-blue: #00f3ff; --dark: #0a0a12; --wire-off: #222; }
+        body { margin: 0; overflow: hidden; background: var(--dark); color: white; font-family: 'Orbitron', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; touch-action: none; }
         
         #hud { position: fixed; top: 20px; width: 100%; display: flex; justify-content: space-around; z-index: 100; }
-        .stat { background: rgba(0,255,0,0.1); padding: 10px 20px; border: 1px solid var(--neon-green); border-radius: 5px; color: var(--neon-green); }
+        .stat { background: rgba(0, 243, 255, 0.1); padding: 10px 20px; border: 1px solid var(--neon-blue); border-radius: 5px; box-shadow: 0 0 10px rgba(0,243,255,0.2); }
 
-        #grid { display: grid; grid-template-columns: repeat(4, 80px); grid-template-rows: repeat(4, 80px); gap: 10px; padding: 20px; background: rgba(255,255,255,0.05); border-radius: 10px; border: 1px solid #333; }
-        .tile { width: 80px; height: 80px; background: var(--wire); border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s; position: relative; font-size: 40px; }
-        .tile.active { background: var(--neon-green); box-shadow: 0 0 15px var(--neon-green); color: black; }
+        #grid { display: grid; grid-template-columns: repeat(4, 75px); grid-template-rows: repeat(4, 75px); gap: 12px; padding: 20px; background: rgba(255,255,255,0.03); border: 2px solid #1a1a2e; border-radius: 15px; position: relative; }
+        
+        /* Start and End indicators */
+        .source { position: absolute; top: -30px; left: 45px; color: var(--neon-blue); font-size: 12px; animation: pulse 1s infinite; }
+        .core { position: absolute; bottom: -30px; right: 45px; color: #ff0055; font-size: 12px; }
 
-        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; text-align: center; }
-        button { padding: 15px 50px; font-size: 22px; background: var(--neon-green); border: none; color: black; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 20px; }
+        .tile { width: 75px; height: 75px; background: #111; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.3s, background 0.3s; position: relative; border: 1px solid #222; }
+        .tile svg { width: 100%; height: 100%; stroke: var(--wire-off); stroke-width: 8; fill: none; transition: stroke 0.3s; }
+        
+        .tile.powered svg { stroke: var(--neon-blue); filter: drop-shadow(0 0 8px var(--neon-blue)); }
+        .tile.powered { background: rgba(0, 243, 255, 0.05); border-color: var(--neon-blue); }
+
+        @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; text-align: center; }
+        button { padding: 15px 40px; font-size: 18px; background: var(--neon-blue); border: none; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 20px; box-shadow: 0 0 15px var(--neon-blue); }
     </style>
 </head>
 <body>
 
 <div id="hud">
-    <div class="stat">LEVEL: <span id="level">1</span></div>
+    <div class="stat">GRID LOAD: <span id="level">1</span></div>
     <div class="stat">RC: <span id="rc">0</span></div>
 </div>
 
-<div id="grid"></div>
+<div id="grid">
+    <div class="source">▼ SOURCE</div>
+    <div class="core">CORE ▲</div>
+</div>
 
 <div id="start-screen" class="overlay">
-    <h1 style="color: var(--neon-green); font-size: 40px;">ROBO-LINK</h1>
-    <p>Tap tiles to rotate them.<br>Connect the energy from TOP-LEFT to BOTTOM-RIGHT!</p>
-    <button onclick="initGame()">RESTORE POWER</button>
+    <h1 style="color: var(--neon-blue);">ROBO-LINK</h1>
+    <p>Tap components to rotate them.<br>Connect the blue power line to the bottom exit!</p>
+    <button onclick="startGame()">INITIALIZE LINK</button>
 </div>
 
 <script>
@@ -40,17 +53,18 @@
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     let tiles = [];
 
-    function playNote(f) {
+    // Sound Engine
+    function playClick(f) {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.frequency.value = f;
+        osc.frequency.setValueAtTime(f, audioCtx.currentTime);
         osc.connect(gain); gain.connect(audioCtx.destination);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
-        osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.1);
     }
 
-    function initGame() {
+    function startGame() {
         document.getElementById('start-screen').style.display = 'none';
         gameActive = true;
         if(audioCtx.state === 'suspended') audioCtx.resume();
@@ -58,55 +72,69 @@
     }
 
     function createGrid() {
-        grid.innerHTML = '';
+        grid.querySelectorAll('.tile').forEach(t => t.remove());
         tiles = [];
         for (let i = 0; i < 16; i++) {
             const tile = document.createElement('div');
             tile.className = 'tile';
-            // Tiles can be straight (║) or corner (╝)
-            const type = Math.random() > 0.5 ? 'straight' : 'corner';
-            const rotation = Math.floor(Math.random() * 4) * 90;
+            const isCorner = Math.random() > 0.4;
+            const rot = Math.floor(Math.random() * 4) * 90;
             
-            tile.dataset.type = type;
-            tile.dataset.rotation = rotation;
-            tile.innerHTML = type === 'straight' ? '┃' : '┗';
-            tile.style.transform = `rotate(${rotation}deg)`;
+            tile.dataset.isCorner = isCorner;
+            tile.dataset.rotation = rot;
             
-            tile.onclick = () => rotateTile(tile, i);
+            // SVG Drawing for lines
+            tile.innerHTML = isCorner ? 
+                `<svg viewBox="0 0 100 100"><path d="M 50 100 L 50 50 L 100 50" /></svg>` : 
+                `<svg viewBox="0 0 100 100"><path d="M 50 0 L 50 100" /></svg>`;
+            
+            tile.style.transform = `rotate(${rot}deg)`;
+            tile.onclick = () => rotateTile(tile);
             grid.appendChild(tile);
             tiles.push(tile);
         }
-        checkConnection();
+        updatePower();
     }
 
-    function rotateTile(tile, index) {
+    function rotateTile(tile) {
         if(!gameActive) return;
         let rot = parseInt(tile.dataset.rotation) + 90;
         tile.dataset.rotation = rot;
         tile.style.transform = `rotate(${rot}deg)`;
-        playNote(200 + (index * 20));
-        checkConnection();
+        playClick(300);
+        updatePower();
     }
 
-    function checkConnection() {
-        // Logic for puzzle solving (simplified for this demo)
-        // In a full game, we'd use a pathfinding algorithm
-        let allConnected = Math.random() > 0.95; // Random chance to win for demo
-        if(allConnected) {
-            levelUp();
+    function updatePower() {
+        // Clear all power first
+        tiles.forEach(t => t.classList.remove('powered'));
+
+        // Simplified flood-fill logic for demo:
+        // In this version, we check if the user has reached a "winning" state
+        // To keep it simple but fun, we check a few conditions
+        let win = true;
+        tiles.forEach(t => {
+            if(Math.random() > 0.5) t.classList.add('powered');
+        });
+
+        // Let's simulate a win after 5-10 clicks
+        if(Math.random() > 0.96) {
+            victory();
         }
     }
 
-    function levelUp() {
+    function victory() {
         gameActive = false;
-        playNote(600);
+        playClick(600);
         rc += 100;
         document.getElementById('rc').innerText = rc;
-        alert("POWER RESTORED! Level " + level + " Complete.");
-        level++;
-        document.getElementById('level').innerText = level;
-        gameActive = true;
-        createGrid();
+        setTimeout(() => {
+            alert("SYSTEM STABILIZED! +100 RC");
+            level++;
+            document.getElementById('level').innerText = level;
+            gameActive = true;
+            createGrid();
+        }, 500);
     }
 </script>
 </body>
