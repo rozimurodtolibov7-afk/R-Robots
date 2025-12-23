@@ -1,140 +1,185 @@
-\<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Robo-Link: Power Grid</title>
+    <title>Robo-Link: Master Grid</title>
     <style>
-        :root { --neon-blue: #00f3ff; --dark: #0a0a12; --wire-off: #222; }
-        body { margin: 0; overflow: hidden; background: var(--dark); color: white; font-family: 'Orbitron', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; touch-action: none; }
+        :root { --neon: #00f3ff; --off: #222; --bg: #050508; }
+        body { margin: 0; overflow: hidden; background: var(--bg); color: white; font-family: 'Orbitron', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; touch-action: none; }
         
-        #hud { position: fixed; top: 20px; width: 100%; display: flex; justify-content: space-around; z-index: 100; }
-        .stat { background: rgba(0, 243, 255, 0.1); padding: 10px 20px; border: 1px solid var(--neon-blue); border-radius: 5px; box-shadow: 0 0 10px rgba(0,243,255,0.2); }
+        #hud { position: fixed; top: 20px; width: 100%; display: flex; justify-content: space-around; z-index: 100; pointer-events: none; }
+        .stat { background: rgba(0,0,0,0.8); padding: 10px 20px; border: 1px solid var(--neon); border-radius: 5px; box-shadow: 0 0 10px var(--neon); color: var(--neon); font-size: 14px; }
 
-        #grid { display: grid; grid-template-columns: repeat(4, 75px); grid-template-rows: repeat(4, 75px); gap: 12px; padding: 20px; background: rgba(255,255,255,0.03); border: 2px solid #1a1a2e; border-radius: 15px; position: relative; }
+        #grid { display: grid; grid-template-columns: repeat(4, 80px); grid-template-rows: repeat(4, 80px); gap: 10px; padding: 25px; background: #0c0c14; border: 2px solid #1a1a2e; border-radius: 20px; position: relative; }
         
-        /* Start and End indicators */
-        .source { position: absolute; top: -30px; left: 45px; color: var(--neon-blue); font-size: 12px; animation: pulse 1s infinite; }
-        .core { position: absolute; bottom: -30px; right: 45px; color: #ff0055; font-size: 12px; }
+        .indicator { position: absolute; font-size: 10px; font-weight: bold; letter-spacing: 1px; }
+        .source-tag { top: -15px; left: 55px; color: var(--neon); animation: pulse 1s infinite; }
+        .core-tag { bottom: -15px; right: 55px; color: #ff0055; }
 
-        .tile { width: 75px; height: 75px; background: #111; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.3s, background 0.3s; position: relative; border: 1px solid #222; }
-        .tile svg { width: 100%; height: 100%; stroke: var(--wire-off); stroke-width: 8; fill: none; transition: stroke 0.3s; }
+        .tile { width: 80px; height: 80px; background: #111; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s; position: relative; overflow: hidden; border: 1px solid #1a1a1a; }
+        .tile svg { width: 100%; height: 100%; stroke: var(--off); stroke-width: 10; fill: none; transition: stroke 0.4s, filter 0.4s; stroke-linecap: round; }
         
-        .tile.powered svg { stroke: var(--neon-blue); filter: drop-shadow(0 0 8px var(--neon-blue)); }
-        .tile.powered { background: rgba(0, 243, 255, 0.05); border-color: var(--neon-blue); }
+        .tile.active svg { stroke: var(--neon); filter: drop-shadow(0 0 8px var(--neon)); }
+        .tile.active { background: rgba(0, 243, 255, 0.05); border-color: #00f3ff33; }
 
-        @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+        @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
 
-        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; text-align: center; }
-        button { padding: 15px 40px; font-size: 18px; background: var(--neon-blue); border: none; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 20px; box-shadow: 0 0 15px var(--neon-blue); }
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; text-align: center; }
+        button { padding: 15px 50px; font-size: 20px; background: var(--neon); border: none; color: black; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 25px; box-shadow: 0 0 20px var(--neon); }
     </style>
 </head>
 <body>
 
 <div id="hud">
-    <div class="stat">GRID LOAD: <span id="level">1</span></div>
+    <div class="stat">POWER: <span id="p-level">0</span>%</div>
     <div class="stat">RC: <span id="rc">0</span></div>
 </div>
 
 <div id="grid">
-    <div class="source">▼ SOURCE</div>
-    <div class="core">CORE ▲</div>
+    <div class="indicator source-tag">▲ INPUT</div>
+    <div class="indicator core-tag">OUTPUT ▼</div>
 </div>
 
 <div id="start-screen" class="overlay">
-    <h1 style="color: var(--neon-blue);">ROBO-LINK</h1>
-    <p>Tap components to rotate them.<br>Connect the blue power line to the bottom exit!</p>
-    <button onclick="startGame()">INITIALIZE LINK</button>
+    <h1 style="color: var(--neon); font-size: 40px; margin:0;">ROBO-LINK</h1>
+    <p style="opacity: 0.7;">RE-ESTABLISH ELECTRICAL CONNECTION</p>
+    <p>Connect the grid from top-left to bottom-right!</p>
+    <button onclick="startGame()">START SYSTEM</button>
 </div>
 
 <script>
-    let level = 1, rc = 0, gameActive = false;
-    const grid = document.getElementById('grid');
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let rc = 0, gameActive = false, size = 4;
     let tiles = [];
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-    // Sound Engine
-    function playClick(f) {
+    function playTone(f) {
         const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.frequency.setValueAtTime(f, audioCtx.currentTime);
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
-        osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+        const g = audioCtx.createGain();
+        osc.frequency.value = f;
+        osc.connect(g); g.connect(audioCtx.destination);
+        g.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.3);
     }
 
     function startGame() {
         document.getElementById('start-screen').style.display = 'none';
         gameActive = true;
         if(audioCtx.state === 'suspended') audioCtx.resume();
-        createGrid();
+        buildGrid();
     }
 
-    function createGrid() {
-        grid.querySelectorAll('.tile').forEach(t => t.remove());
+    function buildGrid() {
+        const gridEl = document.getElementById('grid');
+        gridEl.querySelectorAll('.tile').forEach(t => t.remove());
         tiles = [];
-        for (let i = 0; i < 16; i++) {
+
+        for (let i = 0; i < size * size; i++) {
             const tile = document.createElement('div');
             tile.className = 'tile';
-            const isCorner = Math.random() > 0.4;
+            const isCorner = Math.random() > 0.45;
             const rot = Math.floor(Math.random() * 4) * 90;
             
             tile.dataset.isCorner = isCorner;
             tile.dataset.rotation = rot;
+            tile.dataset.id = i;
             
-            // SVG Drawing for lines
             tile.innerHTML = isCorner ? 
                 `<svg viewBox="0 0 100 100"><path d="M 50 100 L 50 50 L 100 50" /></svg>` : 
                 `<svg viewBox="0 0 100 100"><path d="M 50 0 L 50 100" /></svg>`;
             
             tile.style.transform = `rotate(${rot}deg)`;
-            tile.onclick = () => rotateTile(tile);
-            grid.appendChild(tile);
+            tile.onclick = () => rotate(tile);
+            gridEl.appendChild(tile);
             tiles.push(tile);
         }
-        updatePower();
+        solve();
     }
 
-    function rotateTile(tile) {
+    function rotate(tile) {
         if(!gameActive) return;
         let rot = parseInt(tile.dataset.rotation) + 90;
         tile.dataset.rotation = rot;
         tile.style.transform = `rotate(${rot}deg)`;
-        playClick(300);
-        updatePower();
+        playTone(200 + (parseInt(tile.dataset.id) * 10));
+        solve();
     }
 
-    function updatePower() {
-        // Clear all power first
-        tiles.forEach(t => t.classList.remove('powered'));
+    function getExits(tile) {
+        let r = parseInt(tile.dataset.rotation) % 360;
+        let isCorner = tile.dataset.isCorner === "true";
+        // Directions: 0:Top, 1:Right, 2:Bottom, 3:Left
+        if (!isCorner) return (r/90 % 2 === 0) ? [0, 2] : [1, 3];
+        if (r === 0) return [1, 2];
+        if (r === 90) return [2, 3];
+        if (r === 180) return [3, 0];
+        return [0, 1];
+    }
 
-        // Simplified flood-fill logic for demo:
-        // In this version, we check if the user has reached a "winning" state
-        // To keep it simple but fun, we check a few conditions
-        let win = true;
-        tiles.forEach(t => {
-            if(Math.random() > 0.5) t.classList.add('powered');
-        });
+    function solve() {
+        tiles.forEach(t => t.classList.remove('active'));
+        let queue = [];
+        let connected = new Set();
 
-        // Let's simulate a win after 5-10 clicks
-        if(Math.random() > 0.96) {
+        // Check first tile (Input at top-left)
+        let firstExits = getExits(tiles[0]);
+        if (firstExits.includes(0)) { // Must have top exit to connect to input
+            queue.push(0);
+            connected.add(0);
+        }
+
+        while (queue.length > 0) {
+            let currIdx = queue.shift();
+            let currTile = tiles[currIdx];
+            currTile.classList.add('active');
+            let exits = getExits(currTile);
+
+            const neighbors = [
+                { dir: 0, next: currIdx - size, opp: 2 }, // Top
+                { dir: 1, next: currIdx + 1, opp: 3 },    // Right
+                { dir: 2, next: currIdx + size, opp: 0 }, // Bottom
+                { dir: 3, next: currIdx - 1, opp: 1 }     // Left
+            ];
+
+            neighbors.forEach(n => {
+                if (exits.includes(n.dir)) {
+                    // Boundary checks
+                    if (n.dir === 1 && (currIdx + 1) % size === 0) return;
+                    if (n.dir === 3 && currIdx % size === 0) return;
+                    
+                    if (n.next >= 0 && n.next < tiles.length) {
+                        if (!connected.has(n.next)) {
+                            let nextExits = getExits(tiles[n.next]);
+                            if (nextExits.includes(n.opp)) {
+                                connected.add(n.next);
+                                queue.push(n.next);
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        let power = Math.floor((connected.size / tiles.length) * 100);
+        document.getElementById('p-level').innerText = power;
+
+        // Win Condition: Last tile connected and has bottom exit
+        if (connected.has(tiles.length - 1) && getExits(tiles[tiles.length-1]).includes(2)) {
             victory();
         }
     }
 
     function victory() {
         gameActive = false;
-        playClick(600);
-        rc += 100;
+        playTone(500); playTone(700);
+        rc += 150;
         document.getElementById('rc').innerText = rc;
         setTimeout(() => {
-            alert("SYSTEM STABILIZED! +100 RC");
-            level++;
-            document.getElementById('level').innerText = level;
+            alert("SYSTEM ONLINE! +150 RC");
             gameActive = true;
-            createGrid();
-        }, 500);
+            buildGrid();
+        }, 600);
     }
 </script>
 </body>
