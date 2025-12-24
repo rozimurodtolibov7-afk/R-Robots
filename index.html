@@ -3,49 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Robo-Link: Master Grid</title>
+    <title>Robo-Link: Cyber Circuit</title>
     <style>
-        :root { --neon: #00f3ff; --off: #222; --bg: #050508; }
-        body { margin: 0; overflow: hidden; background: var(--bg); color: white; font-family: 'Orbitron', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; touch-action: none; }
+        :root { --neon: #00f3ff; --danger: #ff0055; --bg: #050508; --tile-bg: #11111d; }
+        body { margin: 0; overflow: hidden; background: var(--bg); color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; touch-action: none; }
         
         #hud { position: fixed; top: 20px; width: 100%; display: flex; justify-content: space-around; z-index: 100; pointer-events: none; }
-        .stat { background: rgba(0,0,0,0.8); padding: 10px 20px; border: 1px solid var(--neon); border-radius: 5px; box-shadow: 0 0 10px var(--neon); color: var(--neon); font-size: 14px; }
+        .stat { background: rgba(0,0,0,0.8); padding: 12px 25px; border: 1px solid var(--neon); border-radius: 8px; box-shadow: 0 0 15px var(--neon); color: var(--neon); font-size: 16px; font-weight: bold; }
 
-        #grid { display: grid; grid-template-columns: repeat(4, 80px); grid-template-rows: repeat(4, 80px); gap: 10px; padding: 25px; background: #0c0c14; border: 2px solid #1a1a2e; border-radius: 20px; position: relative; }
+        #grid-container { position: relative; padding: 20px; background: #0c0c14; border: 3px solid #1a1a2e; border-radius: 20px; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
+        #grid { display: grid; grid-template-columns: repeat(4, 75px); grid-template-rows: repeat(4, 75px); gap: 8px; }
+
+        .indicator { position: absolute; font-size: 12px; font-weight: bold; text-transform: uppercase; }
+        .source-tag { top: -20px; left: 20px; color: var(--neon); animation: pulse 1.5s infinite; }
+        .core-tag { bottom: -20px; right: 20px; color: var(--danger); }
+
+        .tile { width: 75px; height: 75px; background: var(--tile-bg); border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid #222; }
+        .tile svg { width: 80%; height: 80%; stroke: #333; stroke-width: 12; fill: none; transition: 0.4s; stroke-linecap: round; }
         
-        .indicator { position: absolute; font-size: 10px; font-weight: bold; letter-spacing: 1px; }
-        .source-tag { top: -15px; left: 55px; color: var(--neon); animation: pulse 1s infinite; }
-        .core-tag { bottom: -15px; right: 55px; color: #ff0055; }
+        .tile.active { background: rgba(0, 243, 255, 0.1); border-color: var(--neon); }
+        .tile.active svg { stroke: var(--neon); filter: drop-shadow(0 0 5px var(--neon)); }
 
-        .tile { width: 80px; height: 80px; background: #111; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s; position: relative; overflow: hidden; border: 1px solid #1a1a1a; }
-        .tile svg { width: 100%; height: 100%; stroke: var(--off); stroke-width: 10; fill: none; transition: stroke 0.4s, filter 0.4s; stroke-linecap: round; }
-        
-        .tile.active svg { stroke: var(--neon); filter: drop-shadow(0 0 8px var(--neon)); }
-        .tile.active { background: rgba(0, 243, 255, 0.05); border-color: #00f3ff33; }
+        @keyframes pulse { 0%, 100% { opacity: 0.5; transform: scale(1); } 50% { opacity: 1; transform: scale(1.1); } }
 
-        @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
-
-        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; text-align: center; }
-        button { padding: 15px 50px; font-size: 20px; background: var(--neon); border: none; color: black; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 25px; box-shadow: 0 0 20px var(--neon); }
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; text-align: center; }
+        button { padding: 18px 60px; font-size: 22px; background: var(--neon); border: none; color: black; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 30px; box-shadow: 0 0 25px var(--neon); transition: 0.2s; }
+        button:active { transform: scale(0.9); }
     </style>
 </head>
 <body>
 
 <div id="hud">
-    <div class="stat">POWER: <span id="p-level">0</span>%</div>
-    <div class="stat">RC: <span id="rc">0</span></div>
+    <div class="stat">⚡ POWER: <span id="p-level">0</span>%</div>
+    <div class="stat">💎 RC: <span id="rc">0</span></div>
 </div>
 
-<div id="grid">
-    <div class="indicator source-tag">▲ INPUT</div>
-    <div class="indicator core-tag">OUTPUT ▼</div>
+<div id="grid-container">
+    <div class="indicator source-tag">● Input Signal</div>
+    <div id="grid"></div>
+    <div class="indicator core-tag">Output Target ●</div>
 </div>
 
 <div id="start-screen" class="overlay">
-    <h1 style="color: var(--neon); font-size: 40px; margin:0;">ROBO-LINK</h1>
-    <p style="opacity: 0.7;">RE-ESTABLISH ELECTRICAL CONNECTION</p>
-    <p>Connect the grid from top-left to bottom-right!</p>
-    <button onclick="startGame()">START SYSTEM</button>
+    <h1 style="color: var(--neon); font-size: 45px; margin:0; letter-spacing: 5px;">ROBO-LINK</h1>
+    <p style="opacity: 0.8; margin-top: 10px;">REPAIR THE CIRCUIT BOARD</p>
+    <button onclick="startGame()">INITIATE SYSTEM</button>
 </div>
 
 <script>
@@ -53,14 +55,15 @@
     let tiles = [];
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-    function playTone(f) {
+    function playSound(f, type="sine", d=0.3) {
         const osc = audioCtx.createOscillator();
         const g = audioCtx.createGain();
-        osc.frequency.value = f;
+        osc.type = type;
+        osc.frequency.setValueAtTime(f, audioCtx.currentTime);
         osc.connect(g); g.connect(audioCtx.destination);
-        g.gain.setValueAtTime(0.05, audioCtx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
-        osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+        g.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + d);
+        osc.start(); osc.stop(audioCtx.currentTime + d);
     }
 
     function startGame() {
@@ -72,23 +75,28 @@
 
     function buildGrid() {
         const gridEl = document.getElementById('grid');
-        gridEl.querySelectorAll('.tile').forEach(t => t.remove());
+        gridEl.innerHTML = '';
         tiles = [];
 
         for (let i = 0; i < size * size; i++) {
             const tile = document.createElement('div');
             tile.className = 'tile';
-            const isCorner = Math.random() > 0.45;
+            
+            // Types: 0 (Straight), 1 (Corner), 2 (T-shape)
+            const typeProb = Math.random();
+            const type = typeProb > 0.7 ? 2 : (typeProb > 0.35 ? 1 : 0);
             const rot = Math.floor(Math.random() * 4) * 90;
             
-            tile.dataset.isCorner = isCorner;
+            tile.dataset.type = type;
             tile.dataset.rotation = rot;
             tile.dataset.id = i;
             
-            tile.innerHTML = isCorner ? 
-                `<svg viewBox="0 0 100 100"><path d="M 50 100 L 50 50 L 100 50" /></svg>` : 
-                `<svg viewBox="0 0 100 100"><path d="M 50 0 L 50 100" /></svg>`;
-            
+            let path = "";
+            if(type === 0) path = `<path d="M 50 0 L 50 100" />`; // Straight
+            else if(type === 1) path = `<path d="M 50 100 L 50 50 L 100 50" />`; // Corner
+            else path = `<path d="M 0 50 L 100 50 M 50 50 L 50 100" />`; // T-Shape
+
+            tile.innerHTML = `<svg viewBox="0 0 100 100">${path}</svg>`;
             tile.style.transform = `rotate(${rot}deg)`;
             tile.onclick = () => rotate(tile);
             gridEl.appendChild(tile);
@@ -102,19 +110,30 @@
         let rot = parseInt(tile.dataset.rotation) + 90;
         tile.dataset.rotation = rot;
         tile.style.transform = `rotate(${rot}deg)`;
-        playTone(200 + (parseInt(tile.dataset.id) * 10));
+        playSound(300 + (parseInt(tile.dataset.id) * 20), 'triangle', 0.1);
         solve();
     }
 
     function getExits(tile) {
-        let r = parseInt(tile.dataset.rotation) % 360;
-        let isCorner = tile.dataset.isCorner === "true";
+        let r = (parseInt(tile.dataset.rotation) % 360 + 360) % 360;
+        let type = parseInt(tile.dataset.type);
+        
         // Directions: 0:Top, 1:Right, 2:Bottom, 3:Left
-        if (!isCorner) return (r/90 % 2 === 0) ? [0, 2] : [1, 3];
-        if (r === 0) return [1, 2];
-        if (r === 90) return [2, 3];
-        if (r === 180) return [3, 0];
-        return [0, 1];
+        if (type === 0) { // Straight
+            return (r % 180 === 0) ? [0, 2] : [1, 3];
+        } 
+        if (type === 1) { // Corner
+            if (r === 0) return [2, 1];
+            if (r === 90) return [3, 2];
+            if (r === 180) return [0, 3];
+            return [1, 0];
+        }
+        if (type === 2) { // T-Shape
+            if (r === 0) return [3, 1, 2];
+            if (r === 90) return [0, 2, 3];
+            if (r === 180) return [1, 3, 0];
+            return [2, 0, 1];
+        }
     }
 
     function solve() {
@@ -122,9 +141,9 @@
         let queue = [];
         let connected = new Set();
 
-        // Check first tile (Input at top-left)
+        // Input at Top-Left (Tile 0)
         let firstExits = getExits(tiles[0]);
-        if (firstExits.includes(0)) { // Must have top exit to connect to input
+        if (firstExits.includes(0)) { 
             queue.push(0);
             connected.add(0);
         }
@@ -144,7 +163,7 @@
 
             neighbors.forEach(n => {
                 if (exits.includes(n.dir)) {
-                    // Boundary checks
+                    // Grid boundaries
                     if (n.dir === 1 && (currIdx + 1) % size === 0) return;
                     if (n.dir === 3 && currIdx % size === 0) return;
                     
@@ -164,7 +183,7 @@
         let power = Math.floor((connected.size / tiles.length) * 100);
         document.getElementById('p-level').innerText = power;
 
-        // Win Condition: Last tile connected and has bottom exit
+        // Win Condition: Output at Bottom-Right (Tile 15) connected and has bottom exit
         if (connected.has(tiles.length - 1) && getExits(tiles[tiles.length-1]).includes(2)) {
             victory();
         }
@@ -172,11 +191,13 @@
 
     function victory() {
         gameActive = false;
-        playTone(500); playTone(700);
+        playSound(400, 'square', 0.2);
+        setTimeout(() => playSound(600, 'square', 0.4), 150);
         rc += 150;
         document.getElementById('rc').innerText = rc;
+        
         setTimeout(() => {
-            alert("SYSTEM ONLINE! +150 RC");
+            alert("SYSTEM RESTORED! Energy Grid Online.");
             gameActive = true;
             buildGrid();
         }, 600);
