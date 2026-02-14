@@ -1,207 +1,1226 @@
-<!DOCTYPE html>
-<html lang="en">
+﻿<!DOCTYPE html>
+<html lang="uz">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Robo-Link: Cyber Circuit</title>
-    <style>
-        :root { --neon: #00f3ff; --danger: #ff0055; --bg: #050508; --tile-bg: #11111d; }
-        body { margin: 0; overflow: hidden; background: var(--bg); color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; touch-action: none; }
-        
-        #hud { position: fixed; top: 20px; width: 100%; display: flex; justify-content: space-around; z-index: 100; pointer-events: none; }
-        .stat { background: rgba(0,0,0,0.8); padding: 12px 25px; border: 1px solid var(--neon); border-radius: 8px; box-shadow: 0 0 15px var(--neon); color: var(--neon); font-size: 16px; font-weight: bold; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Robo-Link: Cyber Circuit</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --neon: #00f3ff;
+  --neon2: #00ff88;
+  --danger: #ff0055;
+  --warn: #ffaa00;
+  --bg: #04040a;
+  --surface: #0c0c18;
+  --surface2: #121220;
+  --border: #1a1a30;
+  --tile-off: #0e0e1c;
+  --tile-on: rgba(0,243,255,0.08);
+  --text: #c8d8ff;
+  --text-dim: #4a5080;
+}
 
-        #grid-container { position: relative; padding: 20px; background: #0c0c14; border: 3px solid #1a1a2e; border-radius: 20px; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
-        #grid { display: grid; grid-template-columns: repeat(4, 75px); grid-template-rows: repeat(4, 75px); gap: 8px; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
-        .indicator { position: absolute; font-size: 12px; font-weight: bold; text-transform: uppercase; }
-        .source-tag { top: -20px; left: 20px; color: var(--neon); animation: pulse 1.5s infinite; }
-        .core-tag { bottom: -20px; right: 20px; color: var(--danger); }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  touch-action: none;
+}
 
-        .tile { width: 75px; height: 75px; background: var(--tile-bg); border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid #222; }
-        .tile svg { width: 80%; height: 80%; stroke: #333; stroke-width: 12; fill: none; transition: 0.4s; stroke-linecap: round; }
-        
-        .tile.active { background: rgba(0, 243, 255, 0.1); border-color: var(--neon); }
-        .tile.active svg { stroke: var(--neon); filter: drop-shadow(0 0 5px var(--neon)); }
+/* GRID BG */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,243,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,243,255,0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+}
 
-        @keyframes pulse { 0%, 100% { opacity: 0.5; transform: scale(1); } 50% { opacity: 1; transform: scale(1.1); } }
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 15% 15%, rgba(0,243,255,0.06) 0%, transparent 45%),
+    radial-gradient(ellipse at 85% 85%, rgba(255,0,85,0.06) 0%, transparent 45%);
+  pointer-events: none;
+}
 
-        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; text-align: center; }
-        button { padding: 18px 60px; font-size: 22px; background: var(--neon); border: none; color: black; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 30px; box-shadow: 0 0 25px var(--neon); transition: 0.2s; }
-        button:active { transform: scale(0.9); }
-    </style>
+/* ======= LANG SCREEN ======= */
+#langScreen {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  gap: 0;
+}
+
+.game-logo {
+  font-family: 'Orbitron', monospace;
+  font-size: 2.8rem;
+  font-weight: 900;
+  letter-spacing: 6px;
+  color: var(--neon);
+  text-shadow: 0 0 30px var(--neon), 0 0 60px rgba(0,243,255,0.3);
+  margin-bottom: 6px;
+  animation: logoPulse 3s ease-in-out infinite;
+}
+@keyframes logoPulse {
+  0%,100% { text-shadow: 0 0 25px var(--neon), 0 0 50px rgba(0,243,255,0.25); }
+  50% { text-shadow: 0 0 40px var(--neon), 0 0 80px rgba(0,243,255,0.4); }
+}
+
+.game-sub {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 8px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 52px;
+}
+
+.lang-label {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 5px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+
+.lang-row {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 50px;
+}
+
+.lang-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 14px 28px;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+  clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+  position: relative;
+  overflow: hidden;
+}
+.lang-btn .flag { display: block; font-size: 1.4rem; margin-bottom: 4px; text-align: center; }
+.lang-btn:hover {
+  border-color: var(--neon);
+  color: var(--neon);
+  background: rgba(0,243,255,0.07);
+  box-shadow: 0 0 20px rgba(0,243,255,0.2);
+  transform: translateY(-3px);
+}
+
+/* ======= HUD ======= */
+#hud {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  background: rgba(4,4,10,0.95);
+  border-bottom: 1px solid var(--border);
+  z-index: 100;
+  backdrop-filter: blur(10px);
+}
+
+.hud-left, .hud-right { display: flex; align-items: center; gap: 14px; }
+.hud-center { display: flex; flex-direction: column; align-items: center; }
+
+.hud-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: var(--neon);
+  text-shadow: 0 0 15px var(--neon);
+}
+.hud-level {
+  font-size: 0.6rem;
+  letter-spacing: 4px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.stat-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  min-width: 70px;
+}
+.stat-label {
+  font-size: 0.55rem;
+  letter-spacing: 3px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.stat-val {
+  font-family: 'Orbitron', monospace;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+.stat-val.neon { color: var(--neon); }
+.stat-val.warn { color: var(--warn); }
+
+/* POWER BAR */
+.power-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 120px;
+}
+.power-label { font-size: 0.55rem; letter-spacing: 3px; color: var(--text-dim); text-transform: uppercase; }
+.power-bar-outer {
+  width: 120px;
+  height: 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+.power-bar-inner {
+  height: 100%;
+  background: linear-gradient(90deg, var(--neon2), var(--neon));
+  transition: width 0.4s ease;
+  box-shadow: 0 0 8px var(--neon);
+  border-radius: 2px;
+}
+.power-pct {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--neon);
+}
+
+/* AUDIO CONTROLS */
+.audio-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  width: 34px; height: 34px;
+  font-size: 1rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center;
+}
+.audio-btn:hover { border-color: var(--neon); color: var(--neon); }
+.audio-btn.off { opacity: 0.4; }
+
+/* ======= GAME AREA ======= */
+#gameArea {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 80px;
+  width: 100%;
+}
+#gameArea.show { display: flex; }
+
+/* Source / Target labels */
+.grid-wrapper {
+  position: relative;
+  padding: 10px;
+}
+
+.signal-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border: 1px solid;
+  margin-bottom: 8px;
+}
+.signal-badge.source {
+  color: var(--neon2);
+  border-color: rgba(0,255,136,0.4);
+  background: rgba(0,255,136,0.05);
+}
+.signal-badge.target {
+  color: var(--danger);
+  border-color: rgba(255,0,85,0.4);
+  background: rgba(255,0,85,0.05);
+  margin-top: 8px;
+  margin-bottom: 0;
+  justify-content: flex-end;
+}
+.signal-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  animation: blinkDot 1.2s infinite;
+}
+.signal-badge.source .signal-dot { background: var(--neon2); box-shadow: 0 0 6px var(--neon2); }
+.signal-badge.target .signal-dot { background: var(--danger); box-shadow: 0 0 6px var(--danger); animation-delay: 0.6s; }
+@keyframes blinkDot { 0%,100%{opacity:0.3} 50%{opacity:1} }
+
+/* GRID */
+#grid {
+  display: grid;
+  gap: 5px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 0 40px rgba(0,0,0,0.6), inset 0 0 30px rgba(0,0,0,0.4);
+}
+
+/* TILES */
+.tile {
+  background: var(--tile-off);
+  border: 1px solid #1a1a28;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.28s cubic-bezier(0.4,0,0.2,1), background 0.3s, border-color 0.3s, box-shadow 0.3s;
+  position: relative;
+  user-select: none;
+}
+.tile:hover:not(.source-tile):not(.target-tile) {
+  border-color: rgba(0,243,255,0.3);
+  background: rgba(0,243,255,0.04);
+}
+.tile:active { transform: scale(0.92) rotate(calc(var(--rot, 0) * 1deg + 90deg)) !important; }
+
+.tile svg {
+  width: 80%; height: 80%;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke 0.3s, filter 0.3s;
+  pointer-events: none;
+}
+.tile .pipe { stroke: #252538; stroke-width: 10; }
+
+/* Active (connected) tiles */
+.tile.active { background: var(--tile-on); border-color: rgba(0,243,255,0.35); }
+.tile.active .pipe { stroke: var(--neon); filter: drop-shadow(0 0 4px var(--neon)); }
+
+/* Source tile */
+.tile.source-tile { border-color: rgba(0,255,136,0.5); background: rgba(0,255,136,0.07); cursor: default; }
+.tile.source-tile .pipe { stroke: var(--neon2); filter: drop-shadow(0 0 5px var(--neon2)); }
+
+/* Target tile */
+.tile.target-tile { border-color: rgba(255,0,85,0.5); background: rgba(255,0,85,0.07); cursor: default; }
+.tile.target-tile .pipe { stroke: var(--danger); filter: drop-shadow(0 0 5px var(--danger)); }
+.tile.target-tile.active { border-color: var(--neon2) !important; background: rgba(0,255,136,0.1) !important; animation: targetWin 0.6s ease infinite alternate; }
+.tile.target-tile.active .pipe { stroke: var(--neon2) !important; filter: drop-shadow(0 0 8px var(--neon2)) !important; }
+@keyframes targetWin { from { box-shadow: none; } to { box-shadow: 0 0 20px var(--neon2); } }
+
+/* ======= OVERLAYS ======= */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4,4,10,0.95);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  text-align: center;
+  backdrop-filter: blur(8px);
+}
+.overlay.show { display: flex; }
+
+.overlay-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 2.2rem;
+  font-weight: 900;
+  letter-spacing: 6px;
+  margin-bottom: 12px;
+  animation: fadeSlide 0.4s ease;
+}
+@keyframes fadeSlide { from { opacity:0; transform: translateY(-20px); } to { opacity:1; transform:translateY(0); } }
+
+.overlay-sub {
+  font-size: 0.85rem;
+  letter-spacing: 4px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 40px;
+}
+
+.overlay-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 36px;
+}
+
+.action-btn {
+  padding: 14px 44px;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  cursor: pointer;
+  border: 1px solid;
+  transition: all 0.2s;
+  background: transparent;
+  clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+  margin: 6px;
+  text-transform: uppercase;
+}
+.action-btn.primary {
+  border-color: var(--neon);
+  color: var(--neon);
+}
+.action-btn.primary:hover { background: rgba(0,243,255,0.12); box-shadow: 0 0 25px rgba(0,243,255,0.25); }
+.action-btn.secondary {
+  border-color: var(--border);
+  color: var(--text-dim);
+}
+.action-btn.secondary:hover { border-color: var(--text-dim); color: var(--text); }
+
+/* SIZE SELECTOR */
+.size-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 30px;
+}
+.size-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 12px 28px;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+}
+.size-btn:hover, .size-btn.selected {
+  border-color: var(--neon);
+  color: var(--neon);
+  background: rgba(0,243,255,0.07);
+}
+
+/* LEVEL COMPLETE banner */
+#winOverlay .overlay-title { color: var(--neon2); text-shadow: 0 0 30px var(--neon2); }
+
+/* PARTICLES */
+.particle {
+  position: fixed;
+  pointer-events: none;
+  border-radius: 50%;
+  animation: particleFly 0.8s ease forwards;
+  z-index: 500;
+}
+@keyframes particleFly {
+  from { transform: translate(0,0) scale(1); opacity: 1; }
+  to { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; }
+}
+
+
+/* NAV BUTTONS in HUD */
+.nav-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 8px 14px;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+.nav-btn:hover {
+  border-color: var(--neon);
+  color: var(--neon);
+  background: rgba(0,243,255,0.07);
+  box-shadow: 0 0 12px rgba(0,243,255,0.15);
+}
+.nav-btn .btn-icon { font-size: 0.85rem; }
+
+/* PAUSE OVERLAY */
+#pauseOverlay .overlay-title { color: var(--warn); text-shadow: 0 0 25px var(--warn); }
+
+/* Responsive */
+@media (max-width: 500px) {
+  .game-logo { font-size: 1.8rem; letter-spacing: 3px; }
+  .hud-title { font-size: 0.75rem; letter-spacing: 2px; }
+  .stat-box { padding: 4px 10px; min-width: 56px; }
+  .stat-val { font-size: 0.9rem; }
+}
+</style>
 </head>
 <body>
 
-<div id="hud">
-    <div class="stat">⚡ POWER: <span id="p-level">0</span>%</div>
-    <div class="stat">💎 RC: <span id="rc">0</span></div>
+<!-- ======= LANG SCREEN ======= -->
+<div id="langScreen">
+  <div class="game-logo">ROBO-LINK</div>
+  <div class="game-sub">Cyber Circuit Repair</div>
+  <div class="lang-label">Select Language / Tilni tanlang / Выберите язык</div>
+  <div class="lang-row">
+    <button class="lang-btn" onclick="selectLang('uz')">
+      <span class="flag">🇺🇿</span>UZ
+    </button>
+    <button class="lang-btn" onclick="selectLang('ru')">
+      <span class="flag">🇷🇺</span>RU
+    </button>
+    <button class="lang-btn" onclick="selectLang('en')">
+      <span class="flag">🇬🇧</span>EN
+    </button>
+  </div>
 </div>
 
-<div id="grid-container">
-    <div class="indicator source-tag">● Input Signal</div>
+<!-- ======= HUD ======= -->
+<div id="hud" style="display:none;">
+  <div class="hud-left">
+    <button class="nav-btn" onclick="goBack()" id="backHudBtn">
+      <span class="btn-icon">←</span><span id="backBtnLabel">BACK</span>
+    </button>
+    <button class="nav-btn" onclick="openMenu()" id="menuHudBtn">
+      <span class="btn-icon">☰</span><span id="menuBtnLabel">MENU</span>
+    </button>
+  </div>
+
+  <div class="hud-center">
+    <div class="hud-title">ROBO-LINK</div>
+    <div class="hud-level" id="hudSub">CYBER CIRCUIT</div>
+  </div>
+
+  <div class="hud-right">
+    <div class="stat-box">
+      <span class="stat-label" id="hudRcLabel">RC</span>
+      <span class="stat-val neon" id="rcVal">0</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-label" id="hudLvlLabel">LVL</span>
+      <span class="stat-val warn" id="lvlVal">1</span>
+    </div>
+    <div class="power-wrap">
+      <div class="power-label" id="hudPowerLabel">POWER</div>
+      <div class="power-bar-outer">
+        <div class="power-bar-inner" id="powerBar" style="width:0%"></div>
+      </div>
+      <div class="power-pct"><span id="powerPct">0</span>%</div>
+    </div>
+    </div>
+    <button class="audio-btn" id="soundBtn" onclick="toggleSfx()" title="SFX">🔊</button>
+    <button class="audio-btn" id="musicBtn" onclick="toggleMusic()" title="Music">🎵</button>
+  </div>
+</div>
+
+<!-- ======= GAME AREA ======= -->
+<div id="gameArea">
+  <div class="grid-wrapper">
+    <div class="signal-badge source">
+      <div class="signal-dot"></div>
+      <span id="inputLabel">INPUT SIGNAL</span>
+    </div>
     <div id="grid"></div>
-    <div class="indicator core-tag">Output Target ●</div>
+    <div class="signal-badge target">
+      <span id="outputLabel">OUTPUT TARGET</span>
+      <div class="signal-dot"></div>
+    </div>
+  </div>
 </div>
 
-<div id="start-screen" class="overlay">
-    <h1 style="color: var(--neon); font-size: 45px; margin:0; letter-spacing: 5px;">ROBO-LINK</h1>
-    <p style="opacity: 0.8; margin-top: 10px;">REPAIR THE CIRCUIT BOARD</p>
-    <button onclick="startGame()">INITIATE SYSTEM</button>
+<!-- ======= START / SIZE OVERLAY ======= -->
+<div id="startOverlay" class="overlay">
+  <div class="overlay-title" id="startTitle" style="color:var(--neon);text-shadow:0 0 30px var(--neon);">ROBO-LINK</div>
+  <div class="overlay-sub" id="startSub">REPAIR THE CIRCUIT BOARD</div>
+  <div class="lang-label" id="sizeLabel">BOARD SIZE</div>
+  <div class="size-row">
+    <button class="size-btn selected" id="btn4" onclick="selectSize(4)">4 × 4</button>
+    <button class="size-btn" id="btn5" onclick="selectSize(5)">5 × 5</button>
+    <button class="size-btn" id="btn6" onclick="selectSize(6)">6 × 6</button>
+  </div>
+  <button class="action-btn primary" onclick="startGame()" id="startBtn">▶ START</button>
+  <button class="action-btn secondary" onclick="backToLang()" style="margin-top:4px;" id="backToLangBtn">← LANGUAGE</button>
+</div>
+
+<!-- ======= WIN OVERLAY ======= -->
+<div id="winOverlay" class="overlay">
+  <div class="overlay-title" id="winTitle">SYSTEM RESTORED!</div>
+  <div class="overlay-sub" id="winSub">CIRCUIT ONLINE</div>
+  <div class="overlay-stats">
+    <div class="stat-box">
+      <span class="stat-label" id="winRcLabel">EARNED</span>
+      <span class="stat-val neon" id="winRcVal">+150 RC</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-label" id="winMovesLabel">MOVES</span>
+      <span class="stat-val warn" id="winMovesVal">0</span>
+    </div>
+  </div>
+  <div>
+    <button class="action-btn primary" onclick="nextLevel()" id="nextBtn">▶ NEXT LEVEL</button>
+    <button class="action-btn secondary" onclick="goMenu()" id="menuBtn2">☰ MENU</button>
+  </div>
 </div>
 
 <script>
-    let rc = 0, gameActive = false, size = 4;
-    let tiles = [];
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+// =========================================================
+//  TRANSLATIONS
+// =========================================================
+const T = {
+  uz: {
+    sub: "KIBER SXEMA TA'MIRI",
+    rcLabel: "RC",
+    lvlLabel: "DARAJA",
+    powerLabel: "QUVVAT",
+    inputLabel: "KIRISH SIGNALI",
+    outputLabel: "CHIQISH MANZILI",
+    sizeLabel: "MAYDON O'LCHAMI",
+    startBtn: "▶ BOSHLASH",
+    winTitle: "TIZIM TIKLANDI!",
+    winSub: "SXEMA ISHGA TUSHDI",
+    winRcLabel: "TOPILDI",
+    winMovesLabel: "HARAKATLAR",
+    nextBtn: "▶ KEYINGI DARAJA",
+    menuBtn: "☰ MENYU",
+    levelText: "DARAJA",
+    backBtn: "ORQAGA",
+    menuBtn2: "MENYU",
+    pauseTitle: "TO'XTATILDI",
+    pauseSub: "TIZIM KUTMOQDA",
+    resumeBtn: "▶ DAVOM ETISH",
+    restartBtn: "↺ QAYTA BOSHLASH",
+    langBtn: "🌐 TIL",
+    pauseMenuBtn: "☰ BOSH MENYU"
+  },
+  ru: {
+    sub: "РЕМОНТ КИБЕР ЦЕПИ",
+    rcLabel: "RC",
+    lvlLabel: "УРОВЕНЬ",
+    powerLabel: "МОЩНОСТЬ",
+    inputLabel: "ВХОДНОЙ СИГНАЛ",
+    outputLabel: "ВЫХОДНАЯ ЦЕЛЬ",
+    sizeLabel: "РАЗМЕР ПОЛЯ",
+    startBtn: "▶ СТАРТ",
+    winTitle: "СИСТЕМА ВОССТАНОВЛЕНА!",
+    winSub: "ЦЕПЬ АКТИВИРОВАНА",
+    winRcLabel: "ПОЛУЧЕНО",
+    winMovesLabel: "ХОДЫ",
+    nextBtn: "▶ СЛЕДУЮЩИЙ УРОВЕНЬ",
+    menuBtn: "☰ МЕНЮ",
+    levelText: "УРОВЕНЬ",
+    backBtn: "НАЗАД",
+    menuBtn2: "МЕНЮ",
+    pauseTitle: "ПАУЗА",
+    pauseSub: "СИСТЕМА НА ПАУЗЕ",
+    resumeBtn: "▶ ПРОДОЛЖИТЬ",
+    restartBtn: "↺ ПЕРЕЗАПУСК",
+    langBtn: "🌐 ЯЗЫК",
+    pauseMenuBtn: "☰ ГЛАВНОЕ МЕНЮ"
+  },
+  en: {
+    sub: "REPAIR THE CIRCUIT BOARD",
+    rcLabel: "RC",
+    lvlLabel: "LVL",
+    powerLabel: "POWER",
+    inputLabel: "INPUT SIGNAL",
+    outputLabel: "OUTPUT TARGET",
+    sizeLabel: "BOARD SIZE",
+    startBtn: "▶ START",
+    winTitle: "SYSTEM RESTORED!",
+    winSub: "CIRCUIT ONLINE",
+    winRcLabel: "EARNED",
+    winMovesLabel: "MOVES",
+    nextBtn: "▶ NEXT LEVEL",
+    menuBtn: "☰ MENU",
+    levelText: "LEVEL",
+    backBtn: "BACK",
+    menuBtn2: "MENU",
+    pauseTitle: "PAUSED",
+    pauseSub: "SYSTEM STANDBY",
+    resumeBtn: "▶ RESUME",
+    restartBtn: "↺ RESTART",
+    langBtn: "🌐 LANGUAGE",
+    pauseMenuBtn: "☰ MAIN MENU"
+  }
+};
 
-    function playSound(f, type="sine", d=0.3) {
-        const osc = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        osc.type = type;
-        osc.frequency.setValueAtTime(f, audioCtx.currentTime);
-        osc.connect(g); g.connect(audioCtx.destination);
-        g.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + d);
-        osc.start(); osc.stop(audioCtx.currentTime + d);
+// =========================================================
+//  STATE
+// =========================================================
+let lang = 'en';
+let gridSize = 4;
+let tiles = [];
+let rc = 0;
+let level = 1;
+let moves = 0;
+let gameActive = false;
+let sfxOn = true;
+let musicOn = true;
+
+// =========================================================
+//  AUDIO ENGINE
+// =========================================================
+let actx = null;
+let mGain = null;
+let sfxGain = null;
+let musicLoop = null;
+let musicPlaying = false;
+
+function initAudio() {
+  if (actx) return;
+  actx = new (window.AudioContext || window.webkitAudioContext)();
+  mGain = actx.createGain(); mGain.gain.value = 0.7; mGain.connect(actx.destination);
+  sfxGain = actx.createGain(); sfxGain.gain.value = 1.0; sfxGain.connect(mGain);
+}
+
+function resumeAudio() { if (actx && actx.state === 'suspended') actx.resume(); }
+
+function note(freq, type, dur, vol=0.3, delay=0, atk=0.01, rel=0.1, dst=sfxGain) {
+  if (!actx || !sfxOn) return;
+  const t = actx.currentTime + delay;
+  const osc = actx.createOscillator();
+  const g = actx.createGain();
+  osc.type = type; osc.frequency.setValueAtTime(freq, t);
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t + atk);
+  g.gain.exponentialRampToValueAtTime(0.001, t + atk + rel + dur);
+  osc.connect(g); g.connect(dst || mGain);
+  osc.start(t); osc.stop(t + atk + rel + dur + 0.05);
+}
+
+function noise(dur, vol=0.05, delay=0, fc=2000, ftype='bandpass') {
+  if (!actx || !sfxOn) return;
+  const t = actx.currentTime + delay;
+  const buf = actx.createBuffer(1, actx.sampleRate*dur, actx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i=0;i<d.length;i++) d[i]=(Math.random()*2-1);
+  const src = actx.createBufferSource();
+  const flt = actx.createBiquadFilter(); flt.type = ftype; flt.frequency.value = fc;
+  const g = actx.createGain(); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  src.buffer=buf; src.connect(flt); flt.connect(g); g.connect(mGain);
+  src.start(t); src.stop(t+dur+0.05);
+}
+
+// SFX
+function sfxRotate(id) {
+  if (!sfxOn) return;
+  const f = 280 + (id % gridSize) * 30 + (Math.floor(id/gridSize)) * 20;
+  note(f, 'triangle', 0.04, 0.15, 0, 0.005, 0.06);
+  noise(0.04, 0.04, 0, 3000, 'highpass');
+}
+function sfxConnect() {
+  note(660, 'sine', 0.06, 0.2, 0, 0.01, 0.08);
+  note(880, 'sine', 0.04, 0.12, 0.05, 0.01, 0.06);
+}
+function sfxWin() {
+  const mel = [523,659,784,1047,1318];
+  mel.forEach((f,i) => { note(f,'sine',0.14,0.3,i*0.1,0.01,0.18); note(f*1.5,'triangle',0.06,0.1,i*0.1+0.04,0.005,0.08); });
+  noise(0.1, 0.12, 0.52, 5000, 'highpass');
+}
+function sfxNav() {
+  note(660, 'sine', 0.04, 0.15, 0, 0.005, 0.06);
+  note(880, 'sine', 0.04, 0.1, 0.06, 0.005, 0.05);
+}
+function sfxStart() {
+  [261,330,392,523].forEach((f,i) => note(f,'triangle',0.08,0.18,i*0.07,0.01,0.1));
+}
+
+// MUSIC
+const BPM = 95;
+const B = 60/BPM;
+let musicTimers = [];
+
+function startMusic() {
+  if (!actx || !musicOn || musicPlaying) return;
+  musicPlaying = true;
+  scheduleBar();
+}
+
+function stopMusic() {
+  musicPlaying = false;
+  musicTimers.forEach(t => clearTimeout(t));
+  musicTimers = [];
+}
+
+function scheduleBar() {
+  if (!musicPlaying || !musicOn) return;
+  playBar();
+  const t = setTimeout(() => scheduleBar(), B * 8 * 1000);
+  musicTimers.push(t);
+}
+
+function mNote(freq, startB, durB, vol=0.09, type='sine') {
+  if (!actx || !musicOn) return;
+  const t = actx.currentTime + startB * B;
+  const osc = actx.createOscillator();
+  const g = actx.createGain();
+  const mg = actx.createGain(); mg.gain.value = 0.18;
+  mg.connect(mGain);
+  osc.type = type; osc.frequency.setValueAtTime(freq, t);
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t+0.015);
+  g.gain.setValueAtTime(vol*0.65, t + durB*B*0.55);
+  g.gain.linearRampToValueAtTime(0, t + durB*B);
+  osc.connect(g); g.connect(mg);
+  osc.start(t); osc.stop(t + durB*B + 0.05);
+}
+
+function playBar() {
+  if (!actx || !musicOn || !musicPlaying) return;
+  // Bass
+  [41,41,55,49,41,41,49,44].forEach((f,i) => mNote(f, i, 0.88, 0.16, 'triangle'));
+  // Pads
+  [[165,220,277],[147,196,247],[165,220,294],[138,185,233]].forEach((ch,i) =>
+    ch.forEach(f => mNote(f, i*2, 1.8, 0.04, 'sine'))
+  );
+  // Arp sparkle
+  [440,554,659,880,659,554,440,523,659,784,659,523,440,392,330,440]
+    .forEach((f,i) => mNote(f, i*0.5, 0.38, 0.055, 'sine'));
+  // Hi-hat
+  for (let i=0;i<16;i++) {
+    if (!actx || !musicOn) return;
+    const t2 = actx.currentTime + i*B*0.5;
+    const sz = Math.ceil(actx.sampleRate*0.035);
+    const buf = actx.createBuffer(1,sz,actx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let j=0;j<sz;j++) data[j]=(Math.random()*2-1)*Math.exp(-j/(sz*0.3));
+    const src = actx.createBufferSource();
+    const flt = actx.createBiquadFilter(); flt.type='highpass'; flt.frequency.value=7000;
+    const g = actx.createGain(); g.gain.value = i%4===0 ? 0.09 : 0.045;
+    const mg2 = actx.createGain(); mg2.gain.value=0.18;
+    mg2.connect(mGain);
+    src.buffer=buf; src.connect(flt); flt.connect(g); g.connect(mg2);
+    src.start(t2);
+  }
+  // Kick 1&5
+  [0,4].forEach(beat => {
+    if (!actx || !musicOn) return;
+    const t3 = actx.currentTime + beat*B;
+    const osc = actx.createOscillator();
+    const g = actx.createGain();
+    const mg3 = actx.createGain(); mg3.gain.value=0.18; mg3.connect(mGain);
+    osc.frequency.setValueAtTime(130,t3); osc.frequency.exponentialRampToValueAtTime(35,t3+0.12);
+    g.gain.setValueAtTime(0.5,t3); g.gain.exponentialRampToValueAtTime(0.001,t3+0.18);
+    osc.connect(g); g.connect(mg3);
+    osc.start(t3); osc.stop(t3+0.22);
+  });
+}
+
+function toggleSfx() {
+  sfxOn = !sfxOn;
+  document.getElementById('soundBtn').classList.toggle('off', !sfxOn);
+  document.getElementById('soundBtn').textContent = sfxOn ? '🔊' : '🔇';
+  if (sfxOn) { sfxNav(); }
+}
+
+function toggleMusic() {
+  musicOn = !musicOn;
+  document.getElementById('musicBtn').classList.toggle('off', !musicOn);
+  if (musicOn) { musicPlaying=false; startMusic(); }
+  else stopMusic();
+}
+
+// =========================================================
+//  LANGUAGE
+// =========================================================
+function selectLang(l) {
+  initAudio(); resumeAudio(); sfxNav();
+  lang = l;
+  applyLang();
+  document.getElementById('langScreen').style.display = 'none';
+  document.getElementById('startOverlay').classList.add('show');
+  setTimeout(() => startMusic(), 300);
+}
+
+function backToLang() {
+  sfxNav();
+  document.getElementById('startOverlay').classList.remove('show');
+  document.getElementById('langScreen').style.display = 'flex';
+}
+
+function applyLang() {
+  const t = T[lang];
+  document.getElementById('hudSub').textContent = t.sub;
+  document.getElementById('hudRcLabel').textContent = t.rcLabel;
+  document.getElementById('hudLvlLabel').textContent = t.lvlLabel;
+  document.getElementById('hudPowerLabel').textContent = t.powerLabel;
+  document.getElementById('inputLabel').textContent = t.inputLabel;
+  document.getElementById('outputLabel').textContent = t.outputLabel;
+  document.getElementById('sizeLabel').textContent = t.sizeLabel;
+  document.getElementById('startBtn').textContent = t.startBtn;
+  document.getElementById('backToLangBtn').textContent = '← ' + (lang==='uz'?'TIL': lang==='ru'?'ЯЗЫК':'LANGUAGE');
+  document.getElementById('winTitle').textContent = t.winTitle;
+  document.getElementById('winSub').textContent = t.winSub;
+  document.getElementById('winRcLabel').textContent = t.winRcLabel;
+  document.getElementById('winMovesLabel').textContent = t.winMovesLabel;
+  document.getElementById('nextBtn').textContent = t.nextBtn;
+  document.getElementById('menuBtn2').textContent = t.menuBtn;
+  // HUD nav buttons
+  document.getElementById('backBtnLabel').textContent = t.backBtn;
+  document.getElementById('menuBtnLabel').textContent = t.menuBtn2;
+  // Pause overlay
+  document.getElementById('pauseTitle').textContent = t.pauseTitle;
+  document.getElementById('pauseSub').textContent = t.pauseSub;
+  document.getElementById('resumeBtn').textContent = t.resumeBtn;
+  document.getElementById('restartBtn').textContent = t.restartBtn;
+  document.getElementById('langBtn').textContent = t.langBtn;
+  document.getElementById('pauseMenuBtn').textContent = t.pauseMenuBtn;
+}
+
+// =========================================================
+//  SIZE SELECTOR
+// =========================================================
+function selectSize(s) {
+  gridSize = s;
+  sfxNav();
+  [4,5,6].forEach(n => {
+    const btn = document.getElementById('btn'+n);
+    btn.classList.toggle('selected', n===s);
+  });
+}
+
+// =========================================================
+//  GAME
+// =========================================================
+function startGame() {
+  sfxStart();
+  document.getElementById('startOverlay').classList.remove('show');
+  document.getElementById('hud').style.display = 'flex';
+  document.getElementById('gameArea').classList.add('show');
+  moves = 0;
+  buildGrid();
+  gameActive = true;
+}
+
+function nextLevel() {
+  level++;
+  moves = 0;
+  document.getElementById('winOverlay').classList.remove('show');
+  document.getElementById('lvlVal').textContent = level;
+  sfxStart();
+  buildGrid();
+  gameActive = true;
+}
+
+function goMenu() {
+  sfxNav();
+  document.getElementById('winOverlay').classList.remove('show');
+  document.getElementById('startOverlay').classList.add('show');
+  document.getElementById('hud').style.display = 'none';
+  document.getElementById('gameArea').classList.remove('show');
+  gameActive = false;
+}
+
+// HUD back button: go back to start/menu overlay (like a pause)
+function goBack() {
+  sfxNav();
+  if (!gameActive) return;
+  openMenu();
+}
+
+// Open pause/menu overlay
+function openMenu() {
+  sfxNav();
+  gameActive = false;
+  document.getElementById('pauseOverlay').classList.add('show');
+}
+
+// Resume game from pause
+function resumeGame() {
+  sfxNav();
+  document.getElementById('pauseOverlay').classList.remove('show');
+  gameActive = true;
+}
+
+// Restart current level from pause
+function restartFromPause() {
+  sfxStart();
+  document.getElementById('pauseOverlay').classList.remove('show');
+  moves = 0;
+  buildGrid();
+  gameActive = true;
+}
+
+// Go to language screen from pause
+function goLangFromPause() {
+  sfxNav();
+  document.getElementById('pauseOverlay').classList.remove('show');
+  document.getElementById('hud').style.display = 'none';
+  document.getElementById('gameArea').classList.remove('show');
+  document.getElementById('startOverlay').classList.remove('show');
+  document.getElementById('winOverlay').classList.remove('show');
+  document.getElementById('langScreen').style.display = 'flex';
+  gameActive = false;
+}
+
+// Go to main menu from pause
+function goMenuFromPause() {
+  sfxNav();
+  document.getElementById('pauseOverlay').classList.remove('show');
+  document.getElementById('hud').style.display = 'none';
+  document.getElementById('gameArea').classList.remove('show');
+  document.getElementById('startOverlay').classList.add('show');
+  gameActive = false;
+}
+
+// =========================================================
+//  GRID BUILDER
+// =========================================================
+// Tile types:
+//  0 = Straight  (connects opposite sides)
+//  1 = Corner    (connects two adjacent sides)
+//  2 = T-shape   (connects three sides)
+//  3 = Dead-end  (connects one side only)
+
+// Exit directions: 0=Top, 1=Right, 2=Bottom, 3=Left
+
+const TILE_PATHS = {
+  0: `<path class="pipe" d="M 50 0 L 50 100"/>`,                         // Straight
+  1: `<path class="pipe" d="M 50 100 L 50 50 L 100 50"/>`,               // Corner
+  2: `<path class="pipe" d="M 0 50 L 100 50 M 50 50 L 50 100"/>`,        // T-shape
+  3: `<path class="pipe" d="M 50 50 L 50 100"/>`                         // Dead-end
+};
+
+function getExits(type, rot) {
+  rot = ((rot % 360) + 360) % 360;
+  // Base exits (at rot=0)
+  const base = {
+    0: [0, 2],       // Straight: Top, Bottom
+    1: [2, 1],       // Corner: Bottom, Right
+    2: [3, 1, 2],    // T: Left, Right, Bottom
+    3: [2]           // Dead-end: Bottom
+  }[type];
+
+  return base.map(d => (d + rot/90) % 4);
+}
+
+function buildGrid() {
+  const gridEl = document.getElementById('grid');
+  gridEl.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+  gridEl.innerHTML = '';
+  tiles = [];
+
+  const tileSize = Math.min(68, Math.floor((Math.min(window.innerWidth, 520) - 80) / gridSize));
+  gridEl.style.gap = '4px';
+
+  for (let i = 0; i < gridSize * gridSize; i++) {
+    const row = Math.floor(i / gridSize);
+    const col = i % gridSize;
+
+    const isSource = (i === 0);
+    const isTarget = (i === gridSize * gridSize - 1);
+
+    const tile = document.createElement('div');
+    tile.className = 'tile';
+    tile.style.width = tileSize + 'px';
+    tile.style.height = tileSize + 'px';
+
+    let type, rot;
+    if (isSource) {
+      // Source: T-shape rotated to connect right and bottom
+      type = 2; rot = 0; // exits: L,R,B → R,B (we'll fix to connect right+bottom)
+      type = 1; rot = 0; // Corner: B+R
+    } else if (isTarget) {
+      // Target: Corner facing top+left
+      type = 1; rot = 180; // exits: top + left
+    } else {
+      // Random with bias toward straight+corner
+      const r = Math.random();
+      type = r > 0.72 ? 2 : (r > 0.35 ? 1 : 0);
+      rot = Math.floor(Math.random() * 4) * 90;
     }
 
-    function startGame() {
-        document.getElementById('start-screen').style.display = 'none';
-        gameActive = true;
-        if(audioCtx.state === 'suspended') audioCtx.resume();
-        buildGrid();
+    tile.dataset.type = type;
+    tile.dataset.rot = rot;
+    tile.dataset.id = i;
+
+    tile.innerHTML = `<svg viewBox="0 0 100 100" style="width:78%;height:78%;">${TILE_PATHS[type]}</svg>`;
+    tile.style.setProperty('--rot', rot);
+    tile.style.transform = `rotate(${rot}deg)`;
+
+    if (isSource) tile.classList.add('source-tile');
+    if (isTarget) tile.classList.add('target-tile');
+
+    tile.onclick = () => rotateTile(tile);
+    gridEl.appendChild(tile);
+    tiles.push(tile);
+  }
+
+  solve();
+}
+
+// =========================================================
+//  ROTATE
+// =========================================================
+function rotateTile(tile) {
+  if (!gameActive) return;
+  const isSource = tile.classList.contains('source-tile');
+  const isTarget = tile.classList.contains('target-tile');
+  if (isSource || isTarget) return; // source & target don't rotate
+
+  let rot = parseInt(tile.dataset.rot) + 90;
+  tile.dataset.rot = rot;
+  tile.style.setProperty('--rot', rot);
+  tile.style.transform = `rotate(${rot}deg)`;
+
+  const id = parseInt(tile.dataset.id);
+  sfxRotate(id);
+  moves++;
+
+  solve();
+}
+
+// =========================================================
+//  SOLVE (BFS from source)
+// =========================================================
+function solve() {
+  tiles.forEach(t => t.classList.remove('active'));
+
+  const connected = new Set();
+  const queue = [0];
+  connected.add(0);
+
+  while (queue.length > 0) {
+    const idx = queue.shift();
+    const row = Math.floor(idx / gridSize);
+    const col = idx % gridSize;
+    const tile = tiles[idx];
+    const exits = getExits(parseInt(tile.dataset.type), parseInt(tile.dataset.rot));
+
+    const neighbors = [
+      { dir: 0, ni: idx - gridSize, opp: 2, valid: row > 0 },
+      { dir: 1, ni: idx + 1,        opp: 3, valid: col < gridSize-1 },
+      { dir: 2, ni: idx + gridSize, opp: 0, valid: row < gridSize-1 },
+      { dir: 3, ni: idx - 1,        opp: 1, valid: col > 0 }
+    ];
+
+    for (const nb of neighbors) {
+      if (!exits.includes(nb.dir)) continue;
+      if (!nb.valid) continue;
+      if (connected.has(nb.ni)) continue;
+
+      const nTile = tiles[nb.ni];
+      const nExits = getExits(parseInt(nTile.dataset.type), parseInt(nTile.dataset.rot));
+      if (nExits.includes(nb.opp)) {
+        connected.add(nb.ni);
+        queue.push(nb.ni);
+      }
     }
+  }
 
-    function buildGrid() {
-        const gridEl = document.getElementById('grid');
-        gridEl.innerHTML = '';
-        tiles = [];
+  // Highlight
+  let prevSize = document.querySelectorAll('.tile.active').length;
+  connected.forEach(i => tiles[i].classList.add('active'));
 
-        for (let i = 0; i < size * size; i++) {
-            const tile = document.createElement('div');
-            tile.className = 'tile';
-            
-            // Types: 0 (Straight), 1 (Corner), 2 (T-shape)
-            const typeProb = Math.random();
-            const type = typeProb > 0.7 ? 2 : (typeProb > 0.35 ? 1 : 0);
-            const rot = Math.floor(Math.random() * 4) * 90;
-            
-            tile.dataset.type = type;
-            tile.dataset.rotation = rot;
-            tile.dataset.id = i;
-            
-            let path = "";
-            if(type === 0) path = `<path d="M 50 0 L 50 100" />`; // Straight
-            else if(type === 1) path = `<path d="M 50 100 L 50 50 L 100 50" />`; // Corner
-            else path = `<path d="M 0 50 L 100 50 M 50 50 L 50 100" />`; // T-Shape
+  // Power %
+  const pct = Math.floor((connected.size / tiles.length) * 100);
+  document.getElementById('powerBar').style.width = pct + '%';
+  document.getElementById('powerPct').textContent = pct;
 
-            tile.innerHTML = `<svg viewBox="0 0 100 100">${path}</svg>`;
-            tile.style.transform = `rotate(${rot}deg)`;
-            tile.onclick = () => rotate(tile);
-            gridEl.appendChild(tile);
-            tiles.push(tile);
-        }
-        solve();
-    }
+  // Sfx on new connection
+  if (connected.size > prevSize + 1) sfxConnect();
 
-    function rotate(tile) {
-        if(!gameActive) return;
-        let rot = parseInt(tile.dataset.rotation) + 90;
-        tile.dataset.rotation = rot;
-        tile.style.transform = `rotate(${rot}deg)`;
-        playSound(300 + (parseInt(tile.dataset.id) * 20), 'triangle', 0.1);
-        solve();
-    }
+  // Win check: target tile connected
+  const targetIdx = gridSize * gridSize - 1;
+  const targetTile = tiles[targetIdx];
+  if (connected.has(targetIdx)) {
+    // Also check target has at least one valid incoming connection direction
+    victory();
+  }
+}
 
-    function getExits(tile) {
-        let r = (parseInt(tile.dataset.rotation) % 360 + 360) % 360;
-        let type = parseInt(tile.dataset.type);
-        
-        // Directions: 0:Top, 1:Right, 2:Bottom, 3:Left
-        if (type === 0) { // Straight
-            return (r % 180 === 0) ? [0, 2] : [1, 3];
-        } 
-        if (type === 1) { // Corner
-            if (r === 0) return [2, 1];
-            if (r === 90) return [3, 2];
-            if (r === 180) return [0, 3];
-            return [1, 0];
-        }
-        if (type === 2) { // T-Shape
-            if (r === 0) return [3, 1, 2];
-            if (r === 90) return [0, 2, 3];
-            if (r === 180) return [1, 3, 0];
-            return [2, 0, 1];
-        }
-    }
+// =========================================================
+//  VICTORY
+// =========================================================
+function victory() {
+  if (!gameActive) return;
+  gameActive = false;
 
-    function solve() {
-        tiles.forEach(t => t.classList.remove('active'));
-        let queue = [];
-        let connected = new Set();
+  setTimeout(() => {
+    sfxWin();
+    spawnParticles();
 
-        // Input at Top-Left (Tile 0)
-        let firstExits = getExits(tiles[0]);
-        if (firstExits.includes(0)) { 
-            queue.push(0);
-            connected.add(0);
-        }
+    const earned = Math.max(50, 200 - moves * 5 + level * 20);
+    rc += earned;
+    document.getElementById('rcVal').textContent = rc;
+    document.getElementById('winRcVal').textContent = '+' + earned + ' RC';
+    document.getElementById('winMovesVal').textContent = moves;
 
-        while (queue.length > 0) {
-            let currIdx = queue.shift();
-            let currTile = tiles[currIdx];
-            currTile.classList.add('active');
-            let exits = getExits(currTile);
+    document.getElementById('winOverlay').classList.add('show');
+  }, 350);
+}
 
-            const neighbors = [
-                { dir: 0, next: currIdx - size, opp: 2 }, // Top
-                { dir: 1, next: currIdx + 1, opp: 3 },    // Right
-                { dir: 2, next: currIdx + size, opp: 0 }, // Bottom
-                { dir: 3, next: currIdx - 1, opp: 1 }     // Left
-            ];
-
-            neighbors.forEach(n => {
-                if (exits.includes(n.dir)) {
-                    // Grid boundaries
-                    if (n.dir === 1 && (currIdx + 1) % size === 0) return;
-                    if (n.dir === 3 && currIdx % size === 0) return;
-                    
-                    if (n.next >= 0 && n.next < tiles.length) {
-                        if (!connected.has(n.next)) {
-                            let nextExits = getExits(tiles[n.next]);
-                            if (nextExits.includes(n.opp)) {
-                                connected.add(n.next);
-                                queue.push(n.next);
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        let power = Math.floor((connected.size / tiles.length) * 100);
-        document.getElementById('p-level').innerText = power;
-
-        // Win Condition: Output at Bottom-Right (Tile 15) connected and has bottom exit
-        if (connected.has(tiles.length - 1) && getExits(tiles[tiles.length-1]).includes(2)) {
-            victory();
-        }
-    }
-
-    function victory() {
-        gameActive = false;
-        playSound(400, 'square', 0.2);
-        setTimeout(() => playSound(600, 'square', 0.4), 150);
-        rc += 150;
-        document.getElementById('rc').innerText = rc;
-        
-        setTimeout(() => {
-            alert("SYSTEM RESTORED! Energy Grid Online.");
-            gameActive = true;
-            buildGrid();
-        }, 600);
-    }
+// =========================================================
+//  PARTICLES
+// =========================================================
+function spawnParticles() {
+  const colors = ['#00f3ff','#00ff88','#ffaa00','#ff0055','#ffffff'];
+  for (let i = 0; i < 32; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = 4 + Math.random() * 6;
+    const dx = (Math.random() - 0.5) * 300;
+    const dy = (Math.random() - 0.5) * 300;
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    p.style.cssText = `
+      width:${size}px;height:${size}px;
+      background:${color};
+      left:${45+Math.random()*10}%;
+      top:${45+Math.random()*10}%;
+      --dx:${dx}px;--dy:${dy}px;
+      animation-duration:${0.6+Math.random()*0.5}s;
+      box-shadow:0 0 6px ${color};
+    `;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 1200);
+  }
+}
 </script>
+
+<!-- ======= PAUSE / MENU OVERLAY ======= -->
+<div id="pauseOverlay" class="overlay">
+  <div class="overlay-title" id="pauseTitle" style="color:var(--warn);text-shadow:0 0 25px var(--warn);">PAUSED</div>
+  <div class="overlay-sub" id="pauseSub">SYSTEM STANDBY</div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:10px;">
+    <button class="action-btn primary" onclick="resumeGame()" id="resumeBtn">▶ RESUME</button>
+    <button class="action-btn secondary" onclick="restartFromPause()" id="restartBtn">↺ RESTART</button>
+    <button class="action-btn secondary" onclick="goLangFromPause()" id="langBtn">🌐 LANGUAGE</button>
+    <button class="action-btn secondary" onclick="goMenuFromPause()" id="pauseMenuBtn">☰ MAIN MENU</button>
+  </div>
+</div>
+
 </body>
 </html>
